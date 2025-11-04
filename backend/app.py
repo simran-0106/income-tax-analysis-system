@@ -1,57 +1,196 @@
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
+import os
+from datetime import datetime, timedelta
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User
+import jwt
+import pandas as pd
+
+# ==============================
+# 🔐 Configuration
+# ==============================
+SECRET_KEY = os.environ.get("JWT_SECRET", "your-very-secret-key")
 
 app = Flask(__name__)
 CORS(app)
 
-# SQLite database setup
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+basedir = os.path.abspath(os.path.dirname(__file__))
+db_file = os.path.join(basedir, 'app.db')
+UPLOAD_FOLDER = os.path.join(basedir, "uploads")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_file}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = SECRET_KEY
 
-db = SQLAlchemy(app)
+# initialize db
+db.init_app(app)
 
-# Database Model
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    phone = db.Column(db.String(15), unique=True, nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
+if not os.path.isdir(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
-# Initialize database
-with app.app_context():
-    db.create_all()
 
-# Signup route
+# ==============================
+# ⚙️ Create DB
+# ==============================
+def create_app():
+    with app.app_context():
+        db.create_all()
+    return app
+
+
+# ==============================
+# 🔑 JWT Helper Functions
+# ==============================
+def create_token(email):
+    payload = {
+        "sub": email,
+        "exp": datetime.utcnow() + timedelta(hours=6)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+
+def decode_token(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+# ==============================
+# 🌐 Routes
+# ==============================
+
+@app.route('/')
+def home():
+    return jsonify({"message": "Flask backend is running"})
+
+
+# ------------------------------
+# 📝 Signup
+# ------------------------------
 @app.route('/signup', methods=['POST'])
 def signup():
-    data = request.json
-    phone = data.get('phone')
-    email = data.get('email')
-    password = data.get('password')
+    data = request.get_json()
+    print("Signup Data:", data)
 
+    if not data:
+        return jsonify({"message": "Invalid JSON body"}), 400
+
+    email = data.get("email")
+    phone = data.get("phone")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"message": "Email and password required"}), 400
+
+    # Check if user exists
     if User.query.filter_by(email=email).first():
-        return jsonify({'message': 'User already exists!'}), 400
+        return jsonify({"message": "User already exists"}), 400
 
-    hashed_password = generate_password_hash(password)
-    new_user = User(phone=phone, email=email, password_hash=hashed_password)
+    # Create user
+    hashed = generate_password_hash(password)
+    new_user = User(email=email, phone=phone, password_hash=hashed)
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'message': 'Signup successful!'})
 
-# Login route
+    return jsonify({"message": "Signup successful"}), 200
+
+
+# ------------------------------
+# 🔐 Login
+# ------------------------------
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    email = data.get('email')
-    password = data.get('password')
+    data = request.get_json()
+    print("Login Data:", data)
+
+    if not data:
+        return jsonify({"message": "Invalid JSON body"}), 400
+
+    email = data.get("email")
+    password = data.get("password")
 
     user = User.query.filter_by(email=email).first()
-    if user and check_password_hash(user.password_hash, password):
-        return jsonify({'message': 'Login successful!'})
-    else:
-        return jsonify({'message': 'Invalid credentials!'}), 401
 
+    if user and check_password_hash(user.password_hash, password):
+        token = create_token(user.email)
+        return jsonify({"message": "Login successful", "token": token}), 200
+    else:
+        return jsonify({"message": "Invalid credentials"}), 401
+
+
+# ------------------------------
+# 👤 Protected Profile Route
+# ------------------------------
+@app.route('/profile', methods=['GET'])
+def profile():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return jsonify({"message": "Missing token"}), 401
+
+    try:
+        token = auth_header.split(" ")[1]
+    except IndexError:
+        return jsonify({"message": "Invalid token format"}), 401
+
+    payload = decode_token(token)
+    if not payload:
+        return jsonify({"message": "Invalid or expired token"}), 401
+
+    user = User.query.filter_by(email=payload["sub"]).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    return jsonify({"email": user.email, "phone": user.phone})
+
+
+# ------------------------------
+# 📁 File Upload
+# ------------------------------
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({"message": "No file part"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"message": "No file selected"}), 400
+
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(filepath)
+
+    try:
+        if file.filename.lower().endswith('.csv'):
+            df = pd.read_csv(filepath)
+        else:
+            df = pd.read_excel(filepath)
+
+        summary = {
+            "rows": len(df),
+            "columns": len(df.columns),
+            "columns_list": df.columns.tolist(),
+            "preview": df.head(5).to_dict(orient="records")
+        }
+        return jsonify({"message": "File uploaded successfully", "summary": summary}), 200
+    except Exception as e:
+        return jsonify({"message": f"File saved but error reading file: {str(e)}"}), 200
+
+
+# ------------------------------
+# 📤 Serve Uploaded Files
+# ------------------------------
+@app.route('/uploads/<path:filename>', methods=['GET'])
+def serve_upload(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
+
+
+# ==============================
+# 🚀 Run App
+# ==============================
 if __name__ == '__main__':
-    app.run(debug=True)
+    create_app()
+    app.run(debug=True, port=5000)
