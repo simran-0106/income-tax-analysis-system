@@ -149,7 +149,43 @@ def profile():
 
 
 # ------------------------------
-# 📁 File Upload
+# � Stats Endpoint
+# ------------------------------
+@app.route('/stats', methods=['GET'])
+def stats():
+    """Return basic metrics: total users, number of uploaded files, and detected frauds.
+
+    - users: number of rows in the users table
+    - uploads: number of files in the uploads folder
+    - fraud: placeholder (0) — replace with real detection logic if available
+    """
+    try:
+        users_count = User.query.count()
+    except Exception:
+        users_count = 0
+
+    uploads_count = 0
+    try:
+        if os.path.isdir(UPLOAD_FOLDER):
+            uploads_count = len([
+                f for f in os.listdir(UPLOAD_FOLDER)
+                if os.path.isfile(os.path.join(UPLOAD_FOLDER, f)) and not f.startswith('.')
+            ])
+    except Exception:
+        uploads_count = 0
+
+    # TODO: replace with real fraud detection metric
+    fraud_count = 0
+
+    return jsonify({
+        "users": users_count,
+        "uploads": uploads_count,
+        "fraud": fraud_count,
+    })
+
+
+# ------------------------------
+# �📁 File Upload
 # ------------------------------
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -186,6 +222,35 @@ def upload():
 @app.route('/uploads/<path:filename>', methods=['GET'])
 def serve_upload(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+
+# ------------------------------
+# 📊 Serve Augmented Data
+# ------------------------------
+@app.route('/augmented-data', methods=['GET'])
+def serve_augmented_data():
+    """Serve the augmented CSV with tax and fraud risk metrics.
+    Access via /augmented-data?download=true to force download."""
+    augmented_path = os.path.join(UPLOAD_FOLDER, 'sample_augmented.csv')
+    
+    # Run visualization script to ensure augmented data is fresh
+    try:
+        from scripts.visualize import main as generate_visuals
+        generate_visuals()
+    except Exception as e:
+        return jsonify({"error": f"Error generating augmented data: {str(e)}"}), 500
+
+    # Force download if requested
+    if request.args.get('download') == 'true':
+        return send_from_directory(
+            UPLOAD_FOLDER,
+            'sample_augmented.csv',
+            as_attachment=True,
+            download_name='income_tax_augmented.csv'
+        )
+    
+    # Otherwise serve normally
+    return send_from_directory(UPLOAD_FOLDER, 'sample_augmented.csv')
 
 
 # ==============================
