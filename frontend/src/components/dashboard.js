@@ -74,141 +74,84 @@ export default function Dashboard() {
 
   return (
     <Container maxWidth="lg" sx={{ pb: 6 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Income Tax Analysis Dashboard
+      <Box sx={{ mb: 4, mt: 2 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, color: '#0f172a' }}>
+          Income Tax Analysis
         </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Welcome <strong>{localStorage.getItem("email") || "Guest"}</strong>
+        <Typography variant="subtitle1" color="text.secondary" sx={{ color: '#475569' }}>
+          Overview and analytics — Welcome <strong>{localStorage.getItem("email") || "Guest"}</strong>
         </Typography>
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item container xs={12} md={8} spacing={2}>
-          <Grid item xs={12} md={4}>
-            <Card 
-              elevation={3}
-              sx={{ 
-                height: '100%', 
-                background: "linear-gradient(135deg,#1abc9c,#16a085)", 
-                color: "#fff",
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}
-            >
-              <CardContent sx={{ 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'center', 
-                alignItems: 'center',
-                minHeight: 120,
-                p: 3
-              }}>
-                <Typography variant="subtitle2" gutterBottom>Total Users</Typography>
-                <Typography variant="h4">{stats.users}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card 
-              elevation={3}
-              sx={{ 
-                height: '100%', 
-                background: "linear-gradient(135deg,#3498db,#2980b9)", 
-                color: "#fff",
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}
-            >
-              <CardContent sx={{ 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'center', 
-                alignItems: 'center',
-                minHeight: 120,
-                p: 3
-              }}>
-                <Typography variant="subtitle2" gutterBottom>Files Uploaded</Typography>
-                <Typography variant="h4">{stats.uploads}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Card 
-              elevation={3}
-              sx={{ 
-                height: '100%', 
-                background: "linear-gradient(135deg,#e74c3c,#c0392b)", 
-                color: "#fff",
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)'
-                }
-              }}
-            >
-              <CardContent sx={{ 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column', 
-                justifyContent: 'center', 
-                alignItems: 'center',
-                minHeight: 120,
-                p: 3
-              }}>
-                <Typography variant="subtitle2" gutterBottom>Detected Frauds</Typography>
-                <Typography variant="h4">{stats.fraud}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+        <Grid item xs={12}>
+          <Paper component="section" sx={{ mb: 3, p: 3, bgcolor: '#f8fafc', borderRadius: 2, boxShadow: 1 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={8}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 2 }}>
+                      <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 120, p: 3 }}>
+                        <Box sx={{ width: '100%', textAlign: 'center', py: 1, background: 'linear-gradient(135deg,#1abc9c,#16a085)', color: '#fff', borderRadius: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total Users</Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700 }}>{stats.users}</Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 2 }}>
+                      <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 120, p: 3 }}>
+                        <Box sx={{ width: '100%', textAlign: 'center', py: 1, background: 'linear-gradient(135deg,#3498db,#2980b9)', color: '#fff', borderRadius: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Files Uploaded</Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700 }}>{stats.uploads}</Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 2 }}>
+                      <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 120, p: 3 }}>
+                        <Box sx={{ width: '100%', textAlign: 'center', py: 1, background: 'linear-gradient(135deg,#e74c3c,#c0392b)', color: '#fff', borderRadius: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Detected Frauds</Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 700 }}>{stats.fraud}</Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: '100%',
-              bgcolor: '#ffffff',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: 4
-              }
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ color: '#1a237e' }}>
-                Upload Financial Data
-              </Typography>
-              <Typography 
-                variant="body2" 
-                color="primary" 
-                sx={{ 
-                  cursor: 'pointer', 
-                  textDecoration: 'underline',
-                  mb: 2,
-                  display: 'inline-block',
-                  '&:hover': {
-                    color: 'primary.dark'
-                  }
-                }}
-                onClick={() => window.open('/guidelines', '_blank')}
-              >
-                View Upload Guidelines
-              </Typography>
-              <Divider sx={{ my: 2 }} />
-              <Upload onUploaded={(s) => setSummary(s)} />
-            </CardContent>
-          </Card>
+              <Grid item xs={12} md={4}>
+                <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 2 }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ color: '#0f172a', fontWeight: 600 }}>
+                      Upload Financial Data
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="primary" 
+                      sx={{ 
+                        cursor: 'pointer', 
+                        textDecoration: 'underline',
+                        mb: 2,
+                        display: 'inline-block'
+                      }}
+                      onClick={() => window.open('/guidelines', '_blank')}
+                    >
+                      View Upload Guidelines
+                    </Typography>
+                    <Divider sx={{ my: 2 }} />
+                    <Upload onUploaded={(s) => setSummary(s)} />
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Paper>
         </Grid>
 
         <Grid item xs={12}>
-          <Card sx={{ width: '100%' }}>
+          <Paper component="section" sx={{ mb: 3, p: 3, borderRadius: 2, boxShadow: 1, bgcolor: '#ffffff' }}>
             <CardContent>
               <Typography variant="h6">File Summary</Typography>
               <Divider sx={{ my: 1 }} />
@@ -253,135 +196,123 @@ export default function Dashboard() {
                 <Typography variant="body2" color="text.secondary">No file uploaded yet.</Typography>
               )}
             </CardContent>
-          </Card>
+          </Paper>
         </Grid>
 
-        <Grid item container xs={12} spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card 
-              elevation={2}
-              sx={{ 
-                height: '100%',
-                bgcolor: '#ffffff',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4
-                }
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ color: '#1a237e' }}>
-                  Fraud vs Non-Fraud
+        <Grid item xs={12}>
+          <Paper component="section" sx={{ mb: 3, p: 3, borderRadius: 2, boxShadow: 1 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 1 }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ color: '#0f172a', fontWeight: 600 }}>
+                      Fraud vs Non-Fraud
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={barData}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} />
+                        <Legend />
+                        <Bar dataKey="count" fill="#2563eb" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card sx={{ height: '100%', borderRadius: 2, boxShadow: 1 }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ color: '#0f172a', fontWeight: 600 }}>
+                      Analysis Overview
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie dataKey="value" isAnimationActive data={[{ name: 'Tax Paid', value: 45 }, { name: 'Refunds', value: 30 }, { name: 'Pending', value: 25 }]} cx="50%" cy="50%" outerRadius={80} label>
+                          {COLORS.map((color, index) => (
+                            <Cell key={`cell-${index}`} fill={color} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Box component="section" sx={{ mb: 3 }}>
+            <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Fraud Risk Distribution</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Transaction count by risk level
                 </Typography>
                 <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={barData}>
-                    <XAxis dataKey="name" />
+                  <BarChart data={fraudStats} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
                     <YAxis />
-                    <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }} />
-                    <Legend />
-                    <Bar dataKey="count" fill="#3498db" />
+                    <Tooltip
+                      contentStyle={{ background: '#fff', border: '1px solid #ccc', borderRadius: 4 }}
+                      formatter={(value) => [`${value} transactions`, 'Count']}
+                    />
+                    <Bar dataKey="count" name="Transactions">
+                      {fraudStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card 
-              elevation={2}
-              sx={{ 
-                height: '100%',
-                bgcolor: '#ffffff',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4
-                }
-              }}
-            >
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ color: '#1a237e' }}>
-                  Analysis Overview
-                </Typography>
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie dataKey="value" isAnimationActive data={[{ name: 'Tax Paid', value: 45 }, { name: 'Refunds', value: 30 }, { name: 'Pending', value: 25 }]} cx="50%" cy="50%" outerRadius={80} label>
-                      {COLORS.map((color, index) => (
-                        <Cell key={`cell-${index}`} fill={color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6">Fraud Risk Distribution</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Transaction count by risk level
-              </Typography>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={fraudStats} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={60} />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{ background: '#fff', border: '1px solid #ccc', borderRadius: 4 }}
-                    formatter={(value) => [`${value} transactions`, 'Count']}
-                  />
-                  <Bar dataKey="count" name="Transactions">
-                    {fraudStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          </Box>
         </Grid>
 
         {/* Embedded visualizations generated on the backend (Plotly) */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6">Interactive: Income vs Tax</Typography>
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ height: 360 }}>
-                <iframe
-                  title="income-tax-visual"
-                  src="/uploads/visualization_income_tax.html"
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                />
-              </Box>
-            </CardContent>
-          </Card>
+          <Box component="section" sx={{ mb: 3 }}>
+            <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Interactive: Income vs Tax</Typography>
+                <Divider sx={{ my: 1 }} />
+                <Box sx={{ height: 360 }}>
+                  <iframe
+                    title="income-tax-visual"
+                    src="/uploads/visualization_income_tax.html"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6">Interactive: Fraud Risk Distribution</Typography>
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ height: 360 }}>
-                <iframe
-                  title="fraud-bar-visual"
-                  src="/uploads/visualization_fraud_bar.html"
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                />
-              </Box>
-            </CardContent>
-          </Card>
+          <Box component="section" sx={{ mb: 3 }}>
+            <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Interactive: Fraud Risk Distribution</Typography>
+                <Divider sx={{ my: 1 }} />
+                <Box sx={{ height: 360 }}>
+                  <iframe
+                    title="fraud-bar-visual"
+                    src="/uploads/visualization_fraud_bar.html"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
         </Grid>
 
         {/* Power BI Analysis Section */}
-        <Grid item xs={12}>
+        {/* <Grid item xs={12}>
           <Paper sx={{ 
             background: 'linear-gradient(to right, #f8f9fa, #ffffff)',
             borderRadius: 2,
@@ -489,7 +420,8 @@ export default function Dashboard() {
               </Grid>
             </Grid>
           </Paper>
-        </Grid>
+        </Grid> */}
+        
       </Grid>
     </Container>
   );
