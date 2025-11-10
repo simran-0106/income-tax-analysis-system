@@ -1,130 +1,157 @@
 import os
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+from flask_cors import CORS 
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User
 import jwt
 import pandas as pd
+import pymysql  # ✅ MySQL driver
+
+# Import models
+from models import db, User, Upload, FraudAnalysis
 
 # ==============================
-# 🔐 Configuration
+# 🔐 Flask Configuration
 # ==============================
+
 SECRET_KEY = os.environ.get("JWT_SECRET", "your-very-secret-key")
 
 app = Flask(__name__)
 CORS(app)
 
+# Enable MySQL driver
+pymysql.install_as_MySQLdb()
+
+# 🧠 Base directory
 basedir = os.path.abspath(os.path.dirname(__file__))
-db_file = os.path.join(basedir, 'app.db')
 UPLOAD_FOLDER = os.path.join(basedir, "uploads")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_file}"
+# ✅ MySQL Connection String (update your password below)
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://flaskuser:flaskpass@localhost/income_tax_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = SECRET_KEY
 
-# initialize db
+# Initialize Database
 db.init_app(app)
 
+# Ensure uploads folder exists
 if not os.path.isdir(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-
 # ==============================
-# ⚙️ Create DB
+# ⚙️ Database Setup Function
 # ==============================
 def create_app():
     with app.app_context():
-        db.create_all()
+        db.create_all()  # Creates all tables (users, uploads, fraud_analysis)
+        # quick migration: populate username for existing users if missing
+        try:
+            users_missing = User.query.filter((User.username == None) | (User.username == "")).all()
+            for u in users_missing:
+                if u.email:
+                    u.username = u.email
+                else:
+                    u.username = f"user{u.id}"
+                db.session.add(u)
+            db.session.commit()
+        except Exception as e:
+            print("Username migration skipped or failed:", e)
     return app
-
 
 # ==============================
 # 🔑 JWT Helper Functions
 # ==============================
-def create_token(email):
+def create_token(identifier):
     payload = {
-        "sub": email,
+        "sub": identifier,
         "exp": datetime.utcnow() + timedelta(hours=6)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-
 def decode_token(token):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return payload
+        return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
         return None
 
-
 # ==============================
-# 🌐 Routes
+# 🌐 ROUTES
 # ==============================
 
 @app.route('/')
 def home():
-    return jsonify({"message": "Flask backend is running"})
-
+    return jsonify({"message": "Flask backend with MySQL is running ✅"})
 
 # ------------------------------
-# 📝 Signup
+# 📝 SIGNUP
 # ------------------------------
 @app.route('/signup', methods=['POST'])
 def signup():
-    data = request.get_json()
-    print("Signup Data:", data)
+    try:
+        data = request.get_json()
 
-    if not data:
-        return jsonify({"message": "Invalid JSON body"}), 400
+        if not data:
+            return jsonify({"message": "Invalid JSON body"}), 400
 
-    email = data.get("email")
-    phone = data.get("phone")
-    password = data.get("password")
+        # prefer username, but accept email or old userId fields for compatibility
+        username = data.get("username") or data.get("userId") or data.get("email")
+        phone = data.get("phone")
+        password = data.get("password")
 
-    if not email or not password:
-        return jsonify({"message": "Email and password required"}), 400
+        if not username or not password:
+            return jsonify({"message": "Username and password required"}), 400
 
-    # Check if user exists
-    if User.query.filter_by(email=email).first():
-        return jsonify({"message": "User already exists"}), 400
+        # check uniqueness against username or email
+        existing = User.query.filter((User.username == username) | (User.email == username)).first()
+        if existing:
+            return jsonify({"message": "Username or email already exists"}), 400
 
-    # Create user
-    hashed = generate_password_hash(password)
-    new_user = User(email=email, phone=phone, password_hash=hashed)
-    db.session.add(new_user)
-    db.session.commit()
+        hashed = generate_password_hash(password)
+        new_user = User(username=username, email=data.get("email"), phone=phone, password_hash=hashed)
+        db.session.add(new_user)
+        db.session.commit()
 
-    return jsonify({"message": "Signup successful"}), 200
-
+        return jsonify({"message": "Signup successful"}), 200
+    except Exception as e:
+        print(f"❌ Signup error: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": f"Signup failed: {str(e)}"}), 500
 
 # ------------------------------
-# 🔐 Login
+# 🔐 LOGIN
 # ------------------------------
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    print("Login Data:", data)
+    try:
+        data = request.get_json()
 
-    if not data:
-        return jsonify({"message": "Invalid JSON body"}), 400
+        if not data:
+            return jsonify({"message": "Invalid JSON body"}), 400
 
-    email = data.get("email")
-    password = data.get("password")
+        # accept username, userId, or email from frontend
+        identifier = data.get("username") or data.get("userId") or data.get("email")
+        password = data.get("password")
 
-    user = User.query.filter_by(email=email).first()
+        if not identifier or not password:
+            return jsonify({"message": "Username and password required"}), 400
 
-    if user and check_password_hash(user.password_hash, password):
-        token = create_token(user.email)
-        return jsonify({"message": "Login successful", "token": token}), 200
-    else:
-        return jsonify({"message": "Invalid credentials"}), 401
+        # try finding by username first, fall back to email
+        user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
 
+        if user and check_password_hash(user.password_hash, password):
+            # use username as token subject when available
+            token_sub = user.username or user.email
+            token = create_token(token_sub)
+            return jsonify({"message": "Login successful", "token": token}), 200
+        return jsonify({"message": "Invalid username or password"}), 401
+    except Exception as e:
+        print(f"❌ Login error: {str(e)}")
+        return jsonify({"message": f"Login failed: {str(e)}"}), 500
 
 # ------------------------------
-# 👤 Protected Profile Route
+# 👤 PROFILE (Protected Route)
 # ------------------------------
 @app.route('/profile', methods=['GET'])
 def profile():
@@ -141,51 +168,40 @@ def profile():
     if not payload:
         return jsonify({"message": "Invalid or expired token"}), 401
 
-    user = User.query.filter_by(email=payload["sub"]).first()
+    # payload['sub'] may contain username or email; search both
+    sub = payload.get("sub")
+    user = User.query.filter((User.username == sub) | (User.email == sub)).first()
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    return jsonify({"email": user.email, "phone": user.phone})
-
+    return jsonify({
+        "username": user.username,
+        "email": user.email,
+        "phone": user.phone,
+        "role": user.role
+    })
 
 # ------------------------------
-# � Stats Endpoint
+# 📊 STATS ENDPOINT
 # ------------------------------
 @app.route('/stats', methods=['GET'])
 def stats():
-    """Return basic metrics: total users, number of uploaded files, and detected frauds.
-
-    - users: number of rows in the users table
-    - uploads: number of files in the uploads folder
-    - fraud: placeholder (0) — replace with real detection logic if available
-    """
     try:
         users_count = User.query.count()
     except Exception:
         users_count = 0
 
-    uploads_count = 0
-    try:
-        if os.path.isdir(UPLOAD_FOLDER):
-            uploads_count = len([
-                f for f in os.listdir(UPLOAD_FOLDER)
-                if os.path.isfile(os.path.join(UPLOAD_FOLDER, f)) and not f.startswith('.')
-            ])
-    except Exception:
-        uploads_count = 0
-
-    # TODO: replace with real fraud detection metric
-    fraud_count = 0
+    uploads_count = Upload.query.count()
+    fraud_count = FraudAnalysis.query.count()
 
     return jsonify({
         "users": users_count,
         "uploads": uploads_count,
-        "fraud": fraud_count,
+        "fraud": fraud_count
     })
 
-
 # ------------------------------
-# �📁 File Upload
+# 📤 FILE UPLOAD
 # ------------------------------
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -200,10 +216,29 @@ def upload():
     file.save(filepath)
 
     try:
+        # Read uploaded data
         if file.filename.lower().endswith('.csv'):
             df = pd.read_csv(filepath)
         else:
             df = pd.read_excel(filepath)
+
+        # Generate fraud risk (dummy logic for now)
+        df['fraud_risk'] = df.apply(
+            lambda x: 0.8 if x.get('Tax_Paid', 0) < (x.get('Income', 1) * 0.05) else 0.2,
+            axis=1
+        )
+
+        # Save analyzed data to database
+        for _, row in df.iterrows():
+            fraud_record = FraudAnalysis(
+                transaction_id=row.get('PAN_Number'),
+                income=row.get('Income', 0),
+                tax_paid=row.get('Tax_Paid', 0),
+                fraud_risk=row.get('fraud_risk', 0),
+                user_id=1  # You can replace this with logged-in user later
+            )
+            db.session.add(fraud_record)
+        db.session.commit()
 
         summary = {
             "rows": len(df),
@@ -211,36 +246,32 @@ def upload():
             "columns_list": df.columns.tolist(),
             "preview": df.head(5).to_dict(orient="records")
         }
-        return jsonify({"message": "File uploaded successfully", "summary": summary}), 200
+        return jsonify({"message": "File analyzed and saved successfully", "summary": summary}), 200
+
     except Exception as e:
-        return jsonify({"message": f"File saved but error reading file: {str(e)}"}), 200
+        return jsonify({"message": f"Error processing file: {str(e)}"}), 500
 
 
 # ------------------------------
-# 📤 Serve Uploaded Files
+# 📥 SERVE UPLOADED FILES
 # ------------------------------
 @app.route('/uploads/<path:filename>', methods=['GET'])
 def serve_upload(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-
 # ------------------------------
-# 📊 Serve Augmented Data
+# 📈 AUGMENTED DATA
 # ------------------------------
 @app.route('/augmented-data', methods=['GET'])
 def serve_augmented_data():
-    """Serve the augmented CSV with tax and fraud risk metrics.
-    Access via /augmented-data?download=true to force download."""
     augmented_path = os.path.join(UPLOAD_FOLDER, 'sample_augmented.csv')
-    
-    # Run visualization script to ensure augmented data is fresh
+
     try:
         from scripts.visualize import main as generate_visuals
         generate_visuals()
     except Exception as e:
         return jsonify({"error": f"Error generating augmented data: {str(e)}"}), 500
 
-    # Force download if requested
     if request.args.get('download') == 'true':
         return send_from_directory(
             UPLOAD_FOLDER,
@@ -248,13 +279,10 @@ def serve_augmented_data():
             as_attachment=True,
             download_name='income_tax_augmented.csv'
         )
-    
-    # Otherwise serve normally
     return send_from_directory(UPLOAD_FOLDER, 'sample_augmented.csv')
 
-
 # ==============================
-# 🚀 Run App
+# 🚀 RUN FLASK APP
 # ==============================
 if __name__ == '__main__':
     create_app()

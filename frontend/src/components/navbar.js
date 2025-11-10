@@ -10,11 +10,11 @@ import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const email = localStorage.getItem("email");
+  const username = localStorage.getItem("username");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("email");
+    localStorage.removeItem("username");
     navigate("/");
   };
 
@@ -34,9 +34,9 @@ export default function Navbar() {
           Income Tax Analysis
         </Typography>
 
-        {email ? (
+        {username ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" sx={{ mr: 2 }}>{email}</Typography>
+            <Typography variant="body2" sx={{ mr: 2 }}>{username}</Typography>
             <Button color="inherit" onClick={handleLogout}>Logout</Button>
           </Box>
         ) : (

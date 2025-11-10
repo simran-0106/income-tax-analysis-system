@@ -1,25 +1,54 @@
 import React, { useState } from "react";
 import { login } from "../api";
 import { useNavigate } from "react-router-dom";
-import { TextField, Button, Paper, Typography, Box } from "@mui/material";
+import { TextField, Button, Paper, Typography, Box, CircularProgress, Alert } from "@mui/material";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!username.trim()) {
+      setError("Username is required");
+      return;
+    }
+    if (!password.trim()) {
+      setError("Password is required");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await login({ email, password });
-      // api.login returns res.data (the response body) so use it directly
-      const token = res.token;
-      localStorage.setItem("token", token);
-      localStorage.setItem("email", email);
-      alert("Login successful");
+      const res = await login({ username: username.trim(), password });
+      
+      if (!res.token) {
+        setError("No token received. Please try again.");
+        return;
+      }
+
+      // Store credentials in localStorage
+      localStorage.setItem("token", res.token);
+      localStorage.setItem("username", username.trim());
+
+      // Clear form
+      setUsername("");
+      setPassword("");
+
+      // Navigate to dashboard
       navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      const errorMsg = err.response?.data?.message || err.message || "Login failed. Please check your credentials.";
+      setError(errorMsg);
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,18 +63,30 @@ export default function Login() {
       }}
     >
       <Paper elevation={6} sx={{ p: 4, borderRadius: 4, width: 400 }}>
-        <Typography variant="h4" align="center" gutterBottom>
+        <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: 600 }}>
           Welcome Back
         </Typography>
+        <Typography variant="body2" align="center" color="textSecondary" sx={{ mb: 3 }}>
+          Login to your account
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         <form onSubmit={handleLogin}>
           <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            label="Username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             fullWidth
             margin="normal"
             required
+            disabled={loading}
+            placeholder="Enter your username"
           />
           <TextField
             label="Password"
@@ -55,20 +96,23 @@ export default function Login() {
             fullWidth
             margin="normal"
             required
+            disabled={loading}
+            placeholder="Enter your password"
           />
           <Button
             type="submit"
             variant="contained"
             color="primary"
             fullWidth
-            sx={{ mt: 2, borderRadius: 2 }}
+            sx={{ mt: 3, borderRadius: 2, py: 1.5 }}
+            disabled={loading}
           >
-            Login
+            {loading ? <CircularProgress size={24} sx={{ color: "white" }} /> : "Login"}
           </Button>
           <Typography variant="body2" align="center" sx={{ mt: 2 }}>
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <span
-              style={{ color: "#1976d2", cursor: "pointer" }}
+              style={{ color: "#1976d2", cursor: "pointer", fontWeight: 600 }}
               onClick={() => navigate("/signup")}
             >
               Sign Up

@@ -79,7 +79,7 @@ export default function Dashboard() {
           Income Tax Analysis
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" sx={{ color: '#475569' }}>
-          Overview and analytics — Welcome <strong>{localStorage.getItem("email") || "Guest"}</strong>
+          Overview and analytics — Welcome <strong>{localStorage.getItem("username") || "Guest"}</strong>
         </Typography>
       </Box>
 
