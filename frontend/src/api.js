@@ -1,34 +1,63 @@
-// src/api.js
 import axios from "axios";
 
+// ✅ Axios instance
 const API = axios.create({
-  baseURL: "http://localhost:5000", // your Flask backend URL
+  baseURL: "http://127.0.0.1:5000",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// signup API
+// ✅ Signup API
 export const signup = async (data) => {
-  const res = await API.post("/signup", data);
-  return res.data;
+  try {
+    const res = await API.post("/signup", data);
+    return res.data;
+  } catch (error) {
+    console.error("Signup API Error:", error);
+    throw error.response ? error.response.data : error;
+  }
 };
 
-// login API
+// ✅ Login API
 export const login = async (data) => {
-  const res = await API.post("/login", data);
-  return res.data;
+  try {
+    const res = await API.post("/login", data);
+    return res.data;
+  } catch (error) {
+    console.error("Login API Error:", error);
+    throw error.response ? error.response.data : error;
+  }
 };
 
-// file upload API
+// ✅ File Upload API
 export const uploadFile = async (file, token) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await API.post("/upload", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-  });
-  return res.data;
+  try {
+    const res = await axios.post("http://127.0.0.1:5000/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (error) {
+    console.error("File Upload Error:", error);
+    throw error.response ? error.response.data : error;
+  }
+};
+
+// ✅ Fetch Fraud Data for Charts
+export const fetchFraudData = async () => {
+  try {
+    const res = await API.get("/fraud-data");
+    return res.data;
+  } catch (error) {
+    console.error("Fraud Data Fetch Error:", error);
+    throw error.response ? error.response.data : error;
+  }
 };
 
 export default API;
